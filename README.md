@@ -96,6 +96,11 @@ cash / card / bKash / Nagad / Rocket / bank / cheque, and invoice / POS receipt 
 Settings → Backups. On Hostinger set `BACKUP_DIR` to a folder **outside** the deployed app (it is rebuilt on
 every deploy) and keep the Node app running for the schedule to fire.
 
+**Images** (avatars, company/brand logos, product photos) go to Cloudinary when `CLOUDINARY_CLOUD_NAME`,
+`CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET` are set (stored as full `https://` URLs under
+`CLOUDINARY_FOLDER/<avatars|logos|brands|products>`); otherwise to `UPLOAD_DIR`, served at `/uploads`. Use
+Cloudinary on hosts whose disk is wiped on deploy (Render). Accounting attachments always stay on the server disk.
+
 ## Master data
 
 | Resource                                    | Endpoint                                        | Permission   |
@@ -459,7 +464,7 @@ src/
                          model.js, migration.cjs
   routes.js              mounts modules under /api/v1
   migrations/, seeders/  sequelize-cli (CommonJS)
-uploads/                 user uploads (avatars), served at /uploads — not committed
+uploads/                 local image uploads (when Cloudinary is not set), served at /uploads — not committed
 tests/                   Jest + Supertest (globalSetup rebuilds the test DB)
 docker/mysql/init/       SQL run on the first MySQL container start (creates the test DB)
 ```

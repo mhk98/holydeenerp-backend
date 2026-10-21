@@ -44,7 +44,7 @@ const company = Router();
 company.use(authenticate);
 company.get('/', view, c.getCompany);
 company.patch('/', edit, validate({ body: updateCompanySchema }), c.updateCompany);
-company.post('/logo', edit, imageUpload('logos').single('logo'), c.uploadLogo);
+company.post('/logo', edit, imageUpload().single('logo'), c.uploadLogo);
 company.delete('/logo', edit, c.removeLogo);
 router.use('/company', company);
 
