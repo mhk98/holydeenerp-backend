@@ -1,0 +1,45 @@
+# Local MySQL 8 for development. Values match .env.example in this folder.
+#   docker compose up -d        start
+#   docker compose down         stop (data kept in the named volume)
+#   docker compose down -v      stop and wipe data
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: holydeen-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_secret}
+      MYSQL_DATABASE: ${DB_NAME:-holydeen_erp}
+      MYSQL_USER: ${DB_USER:-holydeen}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-holydeen_secret}
+      TZ: Asia/Dhaka
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+06:00
+      - --sql-mode=STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION
+    ports:
+      - '${DB_PORT:-3306}:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', '127.0.0.1', '-uroot', '-p$$MYSQL_ROOT_PASSWORD']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  adminer:
+    image: adminer:4
+    container_name: holydeen-adminer
+    restart: unless-stopped
+    profiles: ['tools']
+    ports:
+      - '8080:8080'
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

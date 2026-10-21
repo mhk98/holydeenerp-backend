@@ -1,0 +1,97 @@
+{
+  "name": "holydeen-erp-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test": "cross-env NODE_ENV=test JWT_ACCESS_EXPIRES_IN=2h NODE_OPTIONS=--experimental-vm-modules jest --runInBand",
+    "db:create": "sequelize-cli db:create",
+    "db:migrate": "sequelize-cli db:migrate",
+    "db:migrate:undo": "sequelize-cli db:migrate:undo",
+    "db:migrate:status": "sequelize-cli db:migrate:status",
+    "db:seed": "sequelize-cli db:seed:all",
+    "db:seed:undo": "sequelize-cli db:seed:undo:all",
+    "accounting:backfill": "node scripts/accounting-backfill.js",
+    "migration:new": "sequelize-cli migration:generate --name",
+    "seed:new": "sequelize-cli seed:generate --name",
+    "format": "prettier --write .",
+    "db:up": "docker compose up -d mysql",
+    "db:down": "docker compose down"
+  },
+  "nodemonConfig": {
+    "watch": [
+      "server.js",
+      "app.js",
+      "src"
+    ],
+    "ignore": [
+      "src/migrations",
+      "src/seeders",
+      "tests",
+      "uploads"
+    ]
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "globalSetup": "<rootDir>/tests/globalSetup.js",
+    "testTimeout": 180000,
+    "globalTeardown": "<rootDir>/tests/globalTeardown.js"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "compression": "^1.8.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "decimal.js": "^10.6.0",
+    "dotenv": "^18.0.8",
+    "exceljs": "^4.4.0",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.12.1",
+    "multer": "^2.4.0",
+    "mysql2": "^3.24.6",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^10.1.7",
+    "qrcode": "^1.5.4",
+    "sequelize": "^6.37.8",
+    "speakeasy": "^2.0.0",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
+    "ua-parser-js": "^2.0.10",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "xss": "^1.0.15",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "cross-env": "^10.1.0",
+    "eslint": "^10.13.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-jest": "^29.17.0",
+    "globals": "^17.13.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.14",
+    "prettier": "^3.9.10",
+    "sequelize-cli": "^6.6.5",
+    "supertest": "^7.3.1"
+  },
+  "allowScripts": {
+    "@scarf/scarf": false,
+    "bcrypt": false
+  }
+}
