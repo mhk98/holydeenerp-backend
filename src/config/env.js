@@ -28,6 +28,7 @@ const schema = z.object({
   DB_PASSWORD: z.string().default(''),
   DB_TIMEZONE: z.string().default('+06:00'),
   DB_POOL_MAX: z.coerce.number().int().positive().default(10),
+  DB_POOL_MIN: z.coerce.number().int().min(0).default(2),
   DB_LOGGING: z
     .enum(['true', 'false'])
     .default('false')

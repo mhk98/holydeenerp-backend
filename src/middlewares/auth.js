@@ -15,11 +15,10 @@ export async function authenticate(req, res, next) {
 
   const payload = verifyAccessToken(token);
 
+  // Both lookups run together — one database round trip less on every request.
+  const [active, ctx] = await Promise.all([isSessionActive(payload.sid), loadAccessContext(payload.sub)]);
   // Revoked sessions ("log out other devices", password reset) lose access immediately.
-  if (!(await isSessionActive(payload.sid)))
-    throw AppError.unauthorized('Session has ended. Please sign in again.');
-
-  const ctx = await loadAccessContext(payload.sub);
+  if (!active) throw AppError.unauthorized('Session has ended. Please sign in again.');
   if (!ctx) throw AppError.unauthorized('Account no longer exists');
   assertCanSignIn(ctx.user);
 
