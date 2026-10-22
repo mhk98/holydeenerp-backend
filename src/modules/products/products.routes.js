@@ -54,7 +54,7 @@ productsRouter.post(
   '/:id/images',
   can('update'),
   validate({ params: idParams }),
-  imageUpload('products', { maxFiles: MAX_IMAGES }).array('images', MAX_IMAGES),
+  imageUpload({ maxFiles: MAX_IMAGES }).array('images', MAX_IMAGES),
   c.addImages,
 );
 productsRouter.put(
@@ -203,7 +203,7 @@ export const brandsRouter = createCrudRouter({
       '/:id/logo',
       allow('update'),
       validate({ params: idParams }),
-      imageUpload('brands').single('logo'),
+      imageUpload().single('logo'),
       async (req, res) =>
         sendSuccess(res, {
           data: await setBrandLogo(ctxOf(req), req.validated.params.id, req.file),

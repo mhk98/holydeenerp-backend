@@ -239,7 +239,7 @@ router.patch('/profile', validate({ body: v.updateProfileSchema }), c.updateProf
  *     responses:
  *       200: { description: Updated user }
  */
-router.post('/profile/avatar', imageUpload('avatars').single('avatar'), c.uploadAvatar);
+router.post('/profile/avatar', imageUpload().single('avatar'), c.uploadAvatar);
 router.delete('/profile/avatar', c.removeAvatar);
 
 /**

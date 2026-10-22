@@ -1,8 +1,5 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import { Op } from 'sequelize';
 import { sequelize } from '../../config/db.js';
-import { env } from '../../config/env.js';
 import {
   Brand,
   Product,
@@ -18,6 +15,7 @@ import {
   Unit,
 } from '../../models.js';
 import { AppError } from '../../utils/AppError.js';
+import { removeImage, saveImages } from '../../utils/storage.js';
 import { isValidBarcode, randomInStoreEan13 } from '../../utils/barcode.js';
 import { parseListQuery } from '../../utils/pagination.js';
 import { retiredValue } from '../../utils/slug.js';
@@ -550,25 +548,18 @@ export async function labelData(ctx, ids) {
 
 // ── Images ─────────────────────────────────────────────────────────────────
 
-const uploadsRoot = () => path.resolve(env.ROOT_DIR, env.UPLOAD_DIR);
-async function removeFile(publicUrl) {
-  if (!publicUrl?.startsWith('/uploads/')) return;
-  const file = path.resolve(uploadsRoot(), publicUrl.slice('/uploads/'.length));
-  if (file.startsWith(uploadsRoot())) await fs.unlink(file).catch(() => {});
-}
-
 export async function addImages(ctx, id, files) {
   if (!files?.length) throw AppError.badRequest('Please choose at least one image');
   const product = await findProduct(ctx, id);
   const existing = await ProductImage.count({ where: { productId: product.id } });
   if (existing + files.length > MAX_IMAGES) {
-    await Promise.all(files.map((f) => removeFile(`/uploads/products/${f.filename}`)));
     throw AppError.badRequest(`A product can have at most ${MAX_IMAGES} images`);
   }
+  const paths = await saveImages(files, 'products');
   await ProductImage.bulkCreate(
-    files.map((f, i) => ({
+    paths.map((p, i) => ({
       productId: product.id,
-      path: `/uploads/products/${f.filename}`,
+      path: p,
       sortOrder: existing + i,
       isPrimary: existing === 0 && i === 0,
     })),
@@ -581,7 +572,7 @@ export async function deleteImage(ctx, id, imageId) {
   const image = await ProductImage.findOne({ where: { id: imageId, productId: product.id } });
   if (!image) throw AppError.notFound('Image not found');
   await image.destroy();
-  await removeFile(image.path);
+  await removeImage(image.path);
   if (image.isPrimary) {
     const next = await ProductImage.findOne({
       where: { productId: product.id },

@@ -8,20 +8,14 @@ import { AppError } from '../utils/AppError.js';
 const IMAGE_TYPES = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' };
 
 /**
- * Image upload into `<UPLOAD_DIR>/<folder>`, served publicly at /uploads/<folder>/<file>.
- * Usage: router.post('/avatar', imageUpload('avatars').single('avatar'), controller)
- * Several files: imageUpload('products', { maxFiles: 8 }).array('images', 8)
+ * Image upload kept in memory; the service stores it with `saveImage()` / `saveImages()`
+ * (src/utils/storage.js — Cloudinary or the local uploads folder).
+ * Usage: router.post('/avatar', imageUpload().single('avatar'), controller)
+ * Several files: imageUpload({ maxFiles: 8 }).array('images', 8)
  */
-export function imageUpload(folder, { maxFiles = 1 } = {}) {
-  const dir = path.resolve(env.ROOT_DIR, env.UPLOAD_DIR, folder);
-  fs.mkdirSync(dir, { recursive: true });
-
+export function imageUpload({ maxFiles = 1 } = {}) {
   return multer({
-    storage: multer.diskStorage({
-      destination: dir,
-      filename: (req, file, cb) =>
-        cb(null, `${Date.now()}-${crypto.randomUUID()}${IMAGE_TYPES[file.mimetype]}`),
-    }),
+    storage: multer.memoryStorage(),
     limits: { fileSize: env.MAX_UPLOAD_MB * 1024 * 1024, files: maxFiles },
     fileFilter: (req, file, cb) => {
       if (IMAGE_TYPES[file.mimetype]) return cb(null, true);

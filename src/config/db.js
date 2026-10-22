@@ -9,13 +9,21 @@ export const sequelize = new Sequelize(env.DB_DATABASE, env.DB_USER, env.DB_PASS
   timezone: env.DB_TIMEZONE,
   logging: env.DB_LOGGING ? (sql) => logger.debug(sql) : false,
   benchmark: env.DB_LOGGING,
-  pool: { max: env.DB_POOL_MAX, min: 0, acquire: 30000, idle: 10000 },
+  // Keep a few connections open: opening one to a remote database costs several round trips.
+  pool: {
+    max: env.DB_POOL_MAX,
+    min: Math.min(env.DB_POOL_MIN, env.DB_POOL_MAX),
+    acquire: 30000,
+    idle: 60000,
+  },
   dialectOptions: {
     // Keep DECIMAL/BIGINT as strings so money never passes through JS floats.
     decimalNumbers: false,
     supportBigNumbers: true,
     bigNumberStrings: true,
     charset: 'utf8mb4',
+    // Stop idle pooled connections from being dropped by NAT / proxies between the API and the DB.
+    enableKeepAlive: true,
   },
   define: {
     underscored: true,

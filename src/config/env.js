@@ -28,6 +28,7 @@ const schema = z.object({
   DB_PASSWORD: z.string().default(''),
   DB_TIMEZONE: z.string().default('+06:00'),
   DB_POOL_MAX: z.coerce.number().int().positive().default(10),
+  DB_POOL_MIN: z.coerce.number().int().min(0).default(2),
   DB_LOGGING: z
     .enum(['true', 'false'])
     .default('false')
@@ -95,6 +96,11 @@ const schema = z.object({
   MAIL_FROM_EMAIL: z.string().email().default('no-reply@holydeen.com'),
 
   UPLOAD_DIR: z.string().default('uploads'),
+  /** Cloudinary for public images (avatars, logos, product photos). Unset → local UPLOAD_DIR. */
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
+  CLOUDINARY_FOLDER: z.string().default('holydeen'),
   /** Where database backups are written. On shared hosting keep it outside the deployed app folder. */
   BACKUP_DIR: z.string().default('backups'),
   MAX_UPLOAD_MB: z.coerce.number().positive().default(2),

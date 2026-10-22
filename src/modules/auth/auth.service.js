@@ -1,5 +1,3 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
 import QRCode from 'qrcode';
 import speakeasy from 'speakeasy';
 import { Op } from 'sequelize';
@@ -9,6 +7,7 @@ import { sendCompanyMail } from '../settings/mail.service.js';
 import { Company, LoginHistory, RefreshToken, User } from '../../models.js';
 import { AppError } from '../../utils/AppError.js';
 import { decrypt, encrypt, randomToken, sha256 } from '../../utils/crypto.js';
+import { removeImage, saveImage } from '../../utils/storage.js';
 import { minutesFromNow } from '../../utils/time.js';
 import { assertCanSignIn, loadAccessContext, toSessionUser } from './access.service.js';
 import { passwordResetEmail } from './auth.emails.js';
@@ -220,27 +219,18 @@ export async function updateProfile(userId, data) {
   return toSessionUser(await loadAccessContext(userId));
 }
 
-const uploadsRoot = () => path.resolve(env.ROOT_DIR, env.UPLOAD_DIR);
-
-async function removeUpload(publicUrl) {
-  if (!publicUrl?.startsWith('/uploads/')) return;
-  const file = path.resolve(uploadsRoot(), publicUrl.slice('/uploads/'.length));
-  if (!file.startsWith(uploadsRoot())) return;
-  await fs.unlink(file).catch(() => {});
-}
-
 export async function updateAvatar(userId, file) {
   if (!file) throw AppError.badRequest('Please choose an image to upload');
   const user = await User.findByPk(userId);
   const previous = user.avatarUrl;
-  await user.update({ avatarUrl: `/uploads/avatars/${file.filename}`, updatedBy: userId });
-  await removeUpload(previous);
+  await user.update({ avatarUrl: await saveImage(file, 'avatars'), updatedBy: userId });
+  await removeImage(previous);
   return toSessionUser(await loadAccessContext(userId));
 }
 
 export async function removeAvatar(userId) {
   const user = await User.findByPk(userId);
-  await removeUpload(user.avatarUrl);
+  await removeImage(user.avatarUrl);
   await user.update({ avatarUrl: null, updatedBy: userId });
   return toSessionUser(await loadAccessContext(userId));
 }

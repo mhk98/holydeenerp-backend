@@ -1,9 +1,7 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { env } from '../../config/env.js';
 import { Brand, Product } from '../../models.js';
 import { AppError } from '../../utils/AppError.js';
 import { createCrudService } from '../../utils/crud.js';
+import { removeImage, saveImage } from '../../utils/storage.js';
 
 export const brandCrud = createCrudService({
   model: Brand,
@@ -25,20 +23,11 @@ export const brandCrud = createCrudService({
   },
 });
 
-async function removeUpload(publicUrl) {
-  if (!publicUrl?.startsWith('/uploads/')) return;
-  const root = path.resolve(env.ROOT_DIR, env.UPLOAD_DIR);
-  const file = path.resolve(root, publicUrl.slice('/uploads/'.length));
-  if (file.startsWith(root)) await fs.unlink(file).catch(() => {});
-}
-
 export async function setBrandLogo(ctx, id, file) {
   if (!file) throw AppError.badRequest('Please choose an image to upload');
   const brand = await brandCrud.find(ctx, id);
   const previous = brand.logoUrl;
-  await brand.update({ logoUrl: `/uploads/brands/${file.filename}`, updatedBy: ctx.auth.userId });
-  await removeUpload(previous);
+  await brand.update({ logoUrl: await saveImage(file, 'brands'), updatedBy: ctx.auth.userId });
+  await removeImage(previous);
   return brandCrud.get(ctx, id);
 }
-
-export { removeUpload };
