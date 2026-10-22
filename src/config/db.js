@@ -29,6 +29,42 @@ export async function connectDatabase() {
   logger.info(`Database connected: ${env.DB_HOST}:${env.DB_PORT}/${env.DB_DATABASE}`);
 }
 
+/**
+ * False only while server.js is still connecting at boot (see requireDatabase); an app imported
+ * directly, as in tests, is always ready.
+ */
+let databaseReady = true;
+export const isDatabaseReady = () => databaseReady;
+export const setDatabaseReady = (value) => {
+  databaseReady = value;
+};
+
+const RETRY_DELAYS_MS = [30_000, 60_000, 120_000, 300_000];
+
+/**
+ * Connect, retrying with backoff instead of exiting. On Hostinger a process that exits is restarted
+ * at once, and each restart spends another MySQL connection attempt (max_connections_per_hour).
+ * Resolves true once connected, or false if `shouldStop()` turns true while waiting.
+ */
+export async function connectDatabaseWithRetry({
+  connect = connectDatabase,
+  delays = RETRY_DELAYS_MS,
+  wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  shouldStop = () => false,
+} = {}) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await connect();
+      return true;
+    } catch (err) {
+      const delay = delays[Math.min(attempt, delays.length - 1)];
+      logger.error(`Database connection failed: ${err.message}. Retrying in ${delay / 1000}s`);
+      await wait(delay);
+      if (shouldStop()) return false;
+    }
+  }
+}
+
 export async function checkDatabase() {
   const started = Date.now();
   try {

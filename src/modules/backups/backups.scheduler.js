@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
+import { withJobLock } from '../../utils/jobLock.js';
 import { getSettings } from '../settings/settings.service.js';
 import { createBackup, pruneScheduled } from './backups.service.js';
 
@@ -40,7 +41,11 @@ export async function scheduleBackups() {
   if (env.NODE_ENV !== 'test') {
     task = cron.schedule(
       expression,
-      () => runScheduled().catch((err) => logger.error(`Scheduled backup failed: ${err.message}`)),
+      // The lock keeps a second server process (deploy overlap) from taking the same backup.
+      () =>
+        withJobLock('database-backup', runScheduled)
+          .then(({ ran }) => ran || logger.info('Scheduled backup skipped: another process is running it'))
+          .catch((err) => logger.error(`Scheduled backup failed: ${err.message}`)),
       { timezone: TIMEZONE, noOverlap: true, name: 'database-backup' },
     );
     logger.info(`Backup schedule: "${expression}" (${TIMEZONE})`);

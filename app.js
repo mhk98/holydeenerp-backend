@@ -11,6 +11,7 @@ import { env } from './src/config/env.js';
 import { morganStream } from './src/config/logger.js';
 import { swaggerSpec } from './src/config/swagger.js';
 import { apiLimiter } from './src/middlewares/rateLimit.js';
+import { requireDatabase } from './src/middlewares/databaseReady.js';
 import { sanitizeInput } from './src/middlewares/sanitize.js';
 import { errorHandler, notFound } from './src/middlewares/errorHandler.js';
 import apiRoutes from './src/routes.js';
@@ -21,13 +22,16 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
 // Swagger UI needs inline scripts/styles, so it is mounted before the strict global CSP.
-app.use(
-  '/api/docs',
-  helmet({ contentSecurityPolicy: false }),
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, { customSiteTitle: `${env.APP_NAME} API` }),
-);
-app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
+// Off in production unless API_DOCS_ENABLED=true (swaggerSpec is null then).
+if (swaggerSpec) {
+  app.use(
+    '/api/docs',
+    helmet({ contentSecurityPolicy: false }),
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, { customSiteTitle: `${env.APP_NAME} API` }),
+  );
+  app.get('/api/docs.json', (req, res) => res.json(swaggerSpec));
+}
 
 app.use(helmet());
 app.use(
@@ -38,6 +42,9 @@ app.use(
       return cb(null, false);
     },
     credentials: true,
+    // The deployed web app is on another origin and sends Authorization, so every API call needs a
+    // preflight; let browsers reuse it for 2 h (Chrome's cap) instead of doubling each request.
+    maxAge: 7200,
   }),
 );
 app.use(compression());
@@ -62,7 +69,7 @@ app.use(
 );
 
 app.use('/api', apiLimiter);
-app.use('/api/v1', apiRoutes);
+app.use('/api/v1', requireDatabase, apiRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

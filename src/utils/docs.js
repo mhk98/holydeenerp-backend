@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { env } from '../config/env.js';
 import { registerPaths } from '../config/swagger.js';
 
 const jsonSchema = (schema) => {
@@ -25,6 +26,8 @@ const listParams = [
  * ]);
  */
 export function documentRoutes(basePath, tag, routes) {
+  // Skip the Zod → JSON Schema conversion entirely when the docs are not served.
+  if (!env.API_DOCS_ENABLED) return;
   const paths = {};
   for (const r of routes) {
     const openApiPath = `${basePath}${r.path ?? ''}`.replace(/:(\w+)/g, '{$1}');

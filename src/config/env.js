@@ -68,6 +68,14 @@ const schema = z.object({
     .optional()
     .transform((v) => (v === undefined ? undefined : v === 'true')),
   COOKIE_SAMESITE: z.enum(['strict', 'lax', 'none']).default('lax'),
+  /**
+   * Swagger UI at /api/docs. Defaults to off in production: building the spec converts every
+   * route's Zod schemas at boot and keeps the whole document in memory.
+   */
+  API_DOCS_ENABLED: z
+    .enum(['true', 'false', ''])
+    .optional()
+    .transform((v) => (v === undefined || v === '' ? undefined : v === 'true')),
   /** 32-byte key as 64 hex chars — encrypts 2FA secrets at rest. */
   ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/i, 'ENCRYPTION_KEY must be 64 hex characters'),
 
@@ -128,6 +136,7 @@ export const env = Object.freeze({
   isProd,
   isTest,
   COOKIE_SECURE: parsed.data.COOKIE_SECURE ?? isProd,
+  API_DOCS_ENABLED: parsed.data.API_DOCS_ENABLED ?? !isProd,
   /** Database actually used by this process. */
   DB_DATABASE: isTest ? testDatabase : parsed.data.DB_NAME,
 });

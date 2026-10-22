@@ -96,6 +96,17 @@ cash / card / bKash / Nagad / Rocket / bank / cheque, and invoice / POS receipt 
 Settings → Backups. On Hostinger set `BACKUP_DIR` to a folder **outside** the deployed app (it is rebuilt on
 every deploy) and keep the Node app running for the schedule to fire.
 
+**Running on Hostinger**
+
+- `NODE_ENV=production`. The API listens immediately; if the database is unreachable it retries with backoff
+  (30 s → 5 min) instead of exiting, and answers `503` (except `/api/v1/health/*`) until it connects.
+- Scheduled jobs (backups, recurring invoices, payment reminders) take a MySQL named lock
+  (`src/utils/jobLock.js`), so a second process — the old one during a deploy — skips the tick instead of
+  duplicating invoices or emails.
+- Swagger (`/api/docs`) is off in production unless `API_DOCS_ENABLED=true`.
+- Keep `UPLOAD_DIR` and `BACKUP_DIR` outside the deployed folder; keep `LOG_LEVEL=info` (debug logs every SQL
+  query when `DB_LOGGING=true`).
+
 ## Master data
 
 | Resource                                    | Endpoint                                        | Permission   |

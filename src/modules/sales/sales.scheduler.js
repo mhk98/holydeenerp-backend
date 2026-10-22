@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { env } from '../../config/env.js';
 import { logger } from '../../config/logger.js';
+import { withJobLock } from '../../utils/jobLock.js';
 import { runAutomaticReminders } from './reminders.service.js';
 import { runDueSchedules } from './recurring.service.js';
 
@@ -22,9 +23,17 @@ export function scheduleSalesJobs() {
   const job = (expression, name, fn) =>
     cron.schedule(
       expression,
+      // The lock keeps a second server process (deploy overlap) from creating the same recurring
+      // invoices or sending the same reminders.
       () =>
-        fn(today())
-          .then((n) => logger.info(`${name}: ${Array.isArray(n) ? n.length : n} done`))
+        withJobLock(name, () => fn(today()))
+          .then(({ ran, result: n }) =>
+            logger.info(
+              ran
+                ? `${name}: ${Array.isArray(n) ? n.length : n} done`
+                : `${name}: skipped, another process is running it`,
+            ),
+          )
           .catch((err) => logger.error(`${name} failed: ${err.message}`)),
       { timezone: TIMEZONE, noOverlap: true, name },
     );
